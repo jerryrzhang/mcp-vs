@@ -14,7 +14,7 @@ int main(void)
   PORTA = 0;
   PORTA |= (1<<PA7); // enable internal pullup PA7
 
-  adcv_init();
+  adc_init();
   _delay_ms(20);
 
   uint16_t adcVal = 0;
