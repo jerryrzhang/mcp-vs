@@ -7,56 +7,42 @@
 
 //static function prototypes, functions only called in this file
 
+volatile uint32_t value = 0;
+uint8_t falling = 0;
+uint32_t last_time = 0;
+char serialString[60] = {};
+
 int main(void)
 {
-  DDRA = 0; //put PORTA into input mode
-  PORTA = 0;
-  PORTA |= (1<<PA7); // enable internal pullup PA7
+  DDRD = 0;
+  PORTD = (1 << PD2);
 
-  DDRC = 0xFF; //portc into output
-  PORTC = 0; //clear leds
 
-  bool horizontal = true;
-  bool pressed = false;
-  adc_init();
-  _delay_ms(20);
+  
+  cli();
 
-  uint16_t adcVal = 0;
+  EICRA |= (1<<ISC21);
+  EICRA &= ~(1<<ISC20);
+  EIMSK |= (1<<INT2);
+
+  sei();
+
+  serial0_init();
+  milliseconds_init();
   while(1)
   {
-    if (PINA & (1<<PA2)) {
-      if (~pressed){
-        horizontal = ~horizontal;
-        pressed = true;
-      }
-    } else {
-      if (pressed) {
-        pressed = false;
-      }
+    if ((milliseconds_now()-last_time)>1000) {
+      last_time = milliseconds_now();
+      sprintf(serialString, "\nFalling Edges in the last second = %u", falling);
+      serial0_print_string(serialString);
+      falling = 0;
     }
-
-
-    if (horizontal) {
-      adcVal = adc_read(3); //returns a 10bit value on voltage at ADC3 from 0 - 1023
-    } else {
-      adcVal = adc_read(4);
-    }
-
-    //  changing this into 8 leds we get
-    // 0-127-255-383-511-639-767-895-1023
-    adcVal = adcVal / 128; //divides and truncates decimal
-    uint8_t lookup[] = {
-      0b11110000,
-      0b01110000,
-      0b00110000,
-      0b00010000,
-      0b00001000,
-      0b00001100,
-      0b00001110,
-      0b00001111
-    };
-
-    PORTC = lookup[adcVal];
   }
+
  return(1);
-}//end main 
+}//end main
+
+
+ISR(INT2_vect) {
+  falling += 1;
+}
