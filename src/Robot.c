@@ -11,11 +11,12 @@ volatile uint32_t value = 0;
 uint8_t falling = 0;
 uint32_t last_time = 0;
 char serialString[60] = {};
+uint32_t last_time_interrupt = 0;
 
 int main(void)
 {
-  DDRD = 0;
-  PORTD = (1 << PD2);
+  DDRD &= ~(1<<PD2);
+  PORTD = 0;
 
 
   
@@ -44,5 +45,8 @@ int main(void)
 
 
 ISR(INT2_vect) {
-  falling += 1;
+  //if ((milliseconds_now()-last_time_interrupt) > 20) {
+  //  last_time_interrupt = milliseconds_now();
+    falling += 1;
+  //}
 }
