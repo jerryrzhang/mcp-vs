@@ -3,109 +3,76 @@
 //An example file for second year mechatronics project
 
 //include this .c file's header file
-#include "Controller.h"
+#include "Robot.h"
 
-
-int milliseconds1 = 0;
-int seconds1 = 0;
-int minutes1 = 0;
-bool stopped = false;
-int debounce = 0;
-bool ignore = false;
-
-bool stopped2 = false;
-int debounce2 = 0;
-bool ignore2 = false;
+//static function prototypes, functions only called in this file
 
 char serialString[60];
+char serialString1[60];
+char lcd_string[60];
+uint8_t recievedData[2];
+
+uint32_t current_ms = 0;
+uint32_t last_send_ms = 0;
+
+uint8_t databyte1 = 10;
+uint8_t databyte2 = 200;
+uint16_t checksum = 0;
+uint16_t adcHorizontal = 0;
+uint16_t adcVertical = 0;
+
+uint16_t data = 0;
 
 //static function prototypes, functions only called in this file
 
 int main(void)
 {
-  DDRD = 0;
-  PORTD = (1 << PD2) | (1 << PD3);
 
-  adc_init();
-  _delay_ms(20);
+  char lcd_string[33] = {0}; //declare and initialise string for LCD
 
-  uint16_t adcVal = 0;
+	//initialisation section, runs once
+	lcd_init(); //initialise 
 
   serial0_init();
+  serial2_init();
+  milliseconds_init();
+  adc_init();
+  while (1)
+  {
+    current_ms = milliseconds_now();
 
-  TCCR1A = 0;
+    if((current_ms - last_send_ms) >= 10) {
+      adcHorizontal = adc_read(0);
+      adcVertical = adc_read(1);
 
-  TCCR1B = (1<<CS12) | (1<<3); // 00000100 prescaler of 256 
-   
-
-
-  TIMSK1 = (1<<OCIE1A);
-
-  OCR1A = 624; //compare register
-  
-  EICRA &= ~(1<<ISC21);
-  EICRA |= (1<<ISC20);
-  EIMSK |= (1<<INT2);
-
-  EIMSK |= (1<<INT3);
-  EICRA &= ~(1<<ISC31);
-  EICRA |= (1<<ISC30);
+      databyte1 = adcHorizontal/5+2; //2-206
+      databyte2 = adcVertical/5+2;
 
 
-  sei();
-
-  while(1) {
-
-  }
-  
-
-
- return(1);
-}//end main
-
-
-ISR(TIMER1_COMPA_vect)
-{
-  debounce -= 1;
-  debounce2 -= 1;
-  if (!stopped) {
-    milliseconds1 += 10;
-  }
-  if (milliseconds1 == 1000) {
-    milliseconds1 = 0;
-    seconds1 += 1;
-  }
-  if (seconds1 == 60) {
-    seconds1 = 0;
-    minutes1 += 1;
-  }
-  sprintf(serialString, "Time: %02d:%02d:%03d\n", minutes1, seconds1, milliseconds1);
-  serial0_print_string(serialString);
-  return;
-}
-
-ISR(INT2_vect) {
-  if (debounce <= 0) {
-    if (!ignore) {
-      stopped = !stopped;
-      ignore = true;
-    } else {
-      ignore = false;
+      checksum = databyte1 + databyte2;
+      serial2_write_bytes(3, databyte1, databyte2, checksum);
+      last_send_ms = current_ms;
     }
-    debounce = 3;
+
+    if(serial2_available())
+    {
+      serial2_get_data(recievedData,2); 
+      sprintf(serialString,"\nData 1: %3u, Data2: %3u", recievedData[0],recievedData[1]); 
+      serial0_print_string(serialString); 
+      
+      lcd_clrscr();
+      lcd_home();       // same as lcd_goto(0);
+      lcd_puts( "Distance" ); //Print string to LCD first line
+      lcd_goto( 0x40 );     //Put cursor to first character on second line
+
+
+      data = 3000/( (recievedData[0]-2) * 3 + 20 ) - 1.5;
+      sprintf( lcd_string , "%dcm" , data); 
+      //print to string, %u special character to be replaced by variables in later arguments
+      lcd_puts( lcd_string ); //Print string to LCD second line, same as first line
+      //%u for unsigned integers, %i,%d for signed integers
+      //%lu for long unsigned ...
+    }
   }
 }
 
-ISR(INT3_vect) {
-  if (debounce2 <= 0) {
-    if (!ignore2) {
-      milliseconds1 = 0;
-      seconds1 = 0;
-      minutes1 = 0;
-      ignore2 = true;
-    } else {
-      ignore2 = false;
-    }
-    debounce2 = 3;
-  }
-}
