@@ -17,10 +17,12 @@
 #include "serial.h" //minimal serial lib
 #include "adc.h" //minimal adc lib
 #include "milliseconds.h" //milliseconds timekeeping lib
-//#include "hd44780.h"
+#include "hd44780.h"
 
 
 //constants
 #define BUILD_DATE __TIME__ " " __DATE__"\n"
+
+
 
 #endif /* ATMEGA2560_H_ */
