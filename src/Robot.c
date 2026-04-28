@@ -138,8 +138,8 @@ void set_motors_auto()
   int front_distance = sensor_distance2();
   int right_distance = sensor_distance3();
 
-  int turning_left;
-  int turning_right;
+  bool turning_left;
+  bool turning_right;
   if (left_distance <= 10) // too close
   {
     save_left();
