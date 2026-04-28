@@ -19,59 +19,36 @@ char serialString1[60];
 
 //static function prototypes, functions only called in this file
 
-int main(void)
-{
-//main function initialization
+void init_serial(void) {
   serial2_init();
-  serial1_init();
   serial0_init();
+}
+
+void init_motors(void) {
+  TCCR3A = (1<<COM3A1) | (1<<COM3B1); //clear rising set falling
+  
+  TCCR3B = (1<<WGM33) | (1<<CS31); //mode 8 prescaler 8
+
+  ICR3 = 8000; //max
+  PORTA = 0xFF; //portA output
+  DDRA |= (1<<DDA0)|(1<<DDA1)|(1<<DDA2)|(1<<DDA3); //put A0-A3 into low impedance output mode
+  PORTE = 0xFF; //portE output
+  DDRE = (1<<PE3) | (1<<PE4); //these are outputs for pwm ocr3A and ocr3b
+}
+
+
+
+void init_all(void) {
+  init_serial();
   adc_init();
   milliseconds_init();
+  init_motors();
   _delay_ms(10);
-  uint8_t databyte1 = 55;
-  uint8_t databyte2 = 80;
 
   
-  uint8_t fc = 150;
-  uint8_t rc = 150;
+}
 
-
-  TCCR3A = (1<<COM3A1) | (1<<COM3B1);
-  
-  TCCR3B = (1<<WGM33) | (1<<CS31);
-
-  ICR3 = 8000;
-  PORTA = 0xFF;
-  DDRA |= (1<<DDA0)|(1<<DDA1)|(1<<DDA2)|(1<<DDA3); //put A0-A3 into low impedance output mode
-  PORTE = 0xFF;
-  DDRE = (1<<PE3) | (1<<PE4);
-
-  while(1)
-  {
-
-    current_ms = milliseconds_now();
-    
-    if( (current_ms-last_send_ms) >= 10)
-    {
-      // sprintf(serialString, "%d\n", adc_read(0));
-      // serial0_print_string(serialString);
-
-      databyte1 = adc_read(0)/3 +2;
-      serial2_write_bytes(2, databyte1, databyte2); 
-
-      last_send_ms = current_ms;
-    }
-
-    if(serial2_available()) {
-      serial2_get_data(receivedData, 3);
-      //if (receivedData[2] == receivedData[0] + receivedData[1]){
-
-        fc = 210 - receivedData[0];
-        rc = receivedData[1];
-
-      //}
-    }
-
+void set_motors(fc, rc) {
     lm = fc + rc - 208;
     rm = fc - rc;
 
@@ -105,7 +82,47 @@ int main(void)
       PORTA &= ~(1<<PA2);
       PORTA |= (1<<PA3);
     }
+}
 
+int main(void)
+{
+
+  init_all();
+//main function initialization
+  uint8_t databyte1 = 55;
+  uint8_t databyte2 = 80;
+
+  
+  uint8_t fc = 150;
+  uint8_t rc = 150;
+
+  while(1)
+  {
+
+    current_ms = milliseconds_now();
+    
+    if( (current_ms-last_send_ms) >= 10)
+    {
+      // sprintf(serialString, "%d\n", adc_read(0));
+      // serial0_print_string(serialString);
+
+      databyte1 = adc_read(0)/3 +2;
+      serial2_write_bytes(2, databyte1, databyte2); 
+
+      last_send_ms = current_ms;
+    }
+
+    if(serial2_available()) {
+      serial2_get_data(receivedData, 3);
+      //if (receivedData[2] == receivedData[0] + receivedData[1]){
+
+        fc = 210 - receivedData[0];
+        rc = receivedData[1];
+
+      //}
+    }
+
+    set_motors(fc, rc);
   }
 
 
