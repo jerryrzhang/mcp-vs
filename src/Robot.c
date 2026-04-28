@@ -11,11 +11,11 @@ uint32_t last_send_ms = 0;
 
 static int16_t lm = 0;
 static int16_t rm = 0;
-
+bool automatic_mode;
 char serialString[60];
 char serialString1[60];
 
-  uint8_t receivedData[2];
+uint8_t receivedData[2];
 
 //static function prototypes, functions only called in this file
 
@@ -44,11 +44,11 @@ void init_all(void) {
   milliseconds_init();
   init_motors();
   _delay_ms(10);
-
+  automatic_mode = true;
   
 }
 
-void set_motors(fc, rc) {
+void set_motors_manual(fc, rc) {
     lm = fc + rc - 208;
     rm = fc - rc;
 
@@ -83,7 +83,92 @@ void set_motors(fc, rc) {
       PORTA |= (1<<PA3);
     }
 }
+int sensor_distance1()
+{
+  int distance;
+  distance = 1; // add calibration
 
+  return distance;
+}
+
+int sensor_distance2()
+{
+  int distance;
+  distance = 1; // add calibration
+
+  return distance;
+}
+
+int sensor_distance3()
+{
+  int distance;
+  distance = 1; // add calibration
+
+  return distance;
+}
+
+void save_left()
+{
+  
+}
+
+void save_right()
+{
+
+}
+
+void determine_turn()
+{
+
+}
+
+void turn_left()
+{
+
+}
+
+void turn_right()
+{
+
+}
+
+void set_motors_auto()
+{
+  int left_distance = sensor_distance1();
+  int front_distance = sensor_distance2();
+  int right_distance = sensor_distance3();
+
+  int turning_left;
+  int turning_right;
+  if (left_distance <= 10) // too close
+  {
+    save_left();
+  }
+  else if (right_distance <= 10) // too close
+  {
+    save_right();
+  }
+  else if (front_distance <= 10) // too close
+  {
+    determine_turn();
+  }
+  else if (turning_left = true)
+  {
+    turn_left();
+  }
+  else if (turning_right = true)
+  {
+    turn_right();
+  }
+}
+
+void read_battery()
+{
+  char voltageString[50];
+  int voltage = adc_read(0) * 50;
+  sprintf(voltageString,"voltage: %d\n",voltage);
+  serial0_print_string(voltageString);
+}
 int main(void)
 {
 
@@ -121,8 +206,15 @@ int main(void)
 
       //}
     }
-
-    set_motors(fc, rc);
+    if (automatic_mode == true)
+    {
+      set_motors_auto(fc, rc);
+    }
+    else
+    {
+      set_motors_manual();
+    }
+    read_battery();
   }
 
 
