@@ -44,44 +44,6 @@ void init_all(void) {
   milliseconds_init();
   init_motors();
   _delay_ms(10);
-
-  
-}
-
-void set_motors(fc, rc) {
-    lm = fc + rc - 208;
-    rm = fc - rc;
-
-    OCR3A = (int32_t)abs(lm)*8000/104; //lm speed from magnitude of lm
-    sprintf(serialString, "%d %d %d %d\n", lm, rm, fc, rc);
-    serial0_print_string(serialString);
-    OCR3B = (int32_t)abs(rm)*8000/104; //lm speed from magnitude of rm
-
-    if(lm>=0) //if lm is positive
-    {
-      //set direction forwards
-      PORTA |= (1<<PA0);
-      PORTA &= ~(1<<PA1);
-    }
-    else
-    {
-      //set direction reverse
-      PORTA &= ~(1<<PA0);
-      PORTA |= (1<<PA1);
-    }
-
-    if(rm>=0) //if rm is positive
-    {
-      //set direction forwards
-      PORTA |= (1<<PA2);
-      PORTA &= ~(1<<PA3);
-    }
-    else
-    {
-      //set direction reverse
-      PORTA &= ~(1<<PA2);
-      PORTA |= (1<<PA3);
-    }
 }
 
 int main(void)
@@ -122,7 +84,39 @@ int main(void)
       //}
     }
 
-    set_motors(fc, rc);
+    lm = fc + rc - 208;
+    rm = fc - rc;
+
+    OCR3A = (int32_t)abs(lm)*8000/104; //lm speed from magnitude of lm
+    sprintf(serialString, "%d %d %d %d\n", lm, rm, fc, rc);
+    serial0_print_string(serialString);
+    OCR3B = (int32_t)abs(rm)*8000/104; //lm speed from magnitude of rm
+
+    if(lm>=0) //if lm is positive
+    {
+      //set direction forwards
+      PORTA |= (1<<PA0);
+      PORTA &= ~(1<<PA1);
+    }
+    else
+    {
+      //set direction reverse
+      PORTA &= ~(1<<PA0);
+      PORTA |= (1<<PA1);
+    }
+
+    if(rm>=0) //if rm is positive
+    {
+      //set direction forwards
+      PORTA |= (1<<PA2);
+      PORTA &= ~(1<<PA3);
+    }
+    else
+    {
+      //set direction reverse
+      PORTA &= ~(1<<PA2);
+      PORTA |= (1<<PA3);
+    }
   }
 
 
