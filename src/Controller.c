@@ -24,55 +24,97 @@ uint16_t adcVertical = 0;
 uint16_t data = 0;
 
 //static function prototypes, functions only called in this file
+void init_serial();
+{
+  serial0_init();
+  serial2_init();
+  milliseconds_init(); // makes serial work...
+}
+
+void init_timer();
+{
+  // pass controller has no timer
+}
+
+void initialise();
+{
+  initSerial();
+  initTimer();
+  adc_init();
+  lcd_init();
+}
+
+int* calculate_data();
+{
+  int* calculatedData[6];
+
+  adcHorizonatal = adc_read(0);
+  adcVertical = adc_read(1);
+
+  calculatedData[0] = adcHorizontal
+  calculatedData[1] = adcVertical
+
+  return calculatedData;
+}
+
+void send_data();
+{
+  int* calculatedData[6];
+  calculatedData = calculateData();
+
+  checksum = calculatedData[0] + calculatedData[1];
+  serial2_write_bytes(3, calculatedData[0], calculatedData[1], checksum);
+  last_send_ms = current_ms;
+    
+}
+
+void lcdDisplay(int data);
+{
+  lcd_clrscr();
+  lcd_home();       // same as lcd_goto(0);
+  lcd_puts( "Distance" ); //Print string to LCD first line
+  lcd_goto( 0x40 );     //Put cursor to first character on second line
+  sprintf( lcd_string , "%dcm" , data);
+  //print to string, %u special character to be replaced by variables in later arguments
+  lcd_puts( lcd_string ); //Print string to LCD second line, same as first line
+  //%u for unsigned integers, %i,%d for signed integers
+  //%lu for long unsigned ...
+
+}
+
+int* receiveData(int data);
+{
+  serial2_get_data(recievedData,2); 
+  sprintf(serialString,"\nData 1: %3u, Data2: %3u", recievedData[0],recievedData[1]); 
+  serial0_print_string(serialString); 
+
+  data[0] = 3000/( (recievedData[0]-2) * 3 + 20 ) - 1.5;
+  lcdDisplay(data[0]);
+
+}
 
 int main(void)
 {
 
   char lcd_string[33] = {0}; //declare and initialise string for LCD
-
+  int* data;
 	//initialisation section, runs once
-	lcd_init(); //initialise 
+  initialise();
 
-  serial0_init();
-  serial2_init();
-  milliseconds_init();
-  adc_init();
+
   while (1)
   {
     current_ms = milliseconds_now();
 
-    if((current_ms - last_send_ms) >= 10) {
-      adcHorizontal = adc_read(0);
-      adcVertical = adc_read(1);
-
-      databyte1 = adcHorizontal/5+2; //2-206
-      databyte2 = adcVertical/5+2;
-
-
-      checksum = databyte1 + databyte2;
-      serial2_write_bytes(3, databyte1, databyte2, checksum);
-      last_send_ms = current_ms;
+    if((current_ms - last_send_ms) >= 10) 
+    {
+      sendData();
     }
 
 
     if(serial2_available())
     {
-      serial2_get_data(recievedData,2); 
-      sprintf(serialString,"\nData 1: %3u, Data2: %3u", recievedData[0],recievedData[1]); 
-      serial0_print_string(serialString); 
-      
-      lcd_clrscr();
-      lcd_home();       // same as lcd_goto(0);
-      lcd_puts( "Distance" ); //Print string to LCD first line
-      lcd_goto( 0x40 );     //Put cursor to first character on second line
-
-
-      data = 3000/( (recievedData[0]-2) * 3 + 20 ) - 1.5;
-      sprintf( lcd_string , "%dcm" , data); 
-      //print to string, %u special character to be replaced by variables in later arguments
-      lcd_puts( lcd_string ); //Print string to LCD second line, same as first line
-      //%u for unsigned integers, %i,%d for signed integers
-      //%lu for long unsigned ...
+      data = recieveData();
     }
   }
 }
