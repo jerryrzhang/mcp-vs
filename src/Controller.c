@@ -54,6 +54,7 @@ int main(void)
       last_send_ms = current_ms;
     }
 
+
     if(serial2_available())
     {
       serial2_get_data(recievedData,2); 
