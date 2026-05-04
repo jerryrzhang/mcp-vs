@@ -173,7 +173,7 @@ int main(void)
 {
 
   init_all();
-//main function initialization
+  //main function initialization
   uint8_t databyte1 = 55;
   uint8_t databyte2 = 80;
 
