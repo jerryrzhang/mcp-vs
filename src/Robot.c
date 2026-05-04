@@ -165,8 +165,8 @@ void set_motors_auto()
 void read_battery()
 {
   char voltageString[50];
-  int voltage = adc_read(0) * 50;
-  sprintf(voltageString,"voltage: %d\n",voltage);
+  int voltage = adc_read(0)*5*1.68/1.024 - 200;
+  sprintf(voltageString,"voltage: %d mV\n",voltage);
   serial0_print_string(voltageString);
 }
 int main(void)
