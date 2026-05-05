@@ -5,21 +5,23 @@
 //include this .c file's header file
 #include "Robot.h"
 
-#define MOVE_SPEED 50
-#define TURN_SPEED 1
+#define MOVE_SPEED 30
+#define TURN_SPEED 20
 
 uint32_t current_ms = 0;
 uint32_t last_send_ms = 0;
 
 static int16_t lm = 0;
 static int16_t rm = 0;
-bool automatic_mode = false;
+bool automatic_mode = true;
 char serialString[60];
 char serialString1[60];
 
 uint16_t compValue = 1500;
 
 uint8_t receivedData[6];
+int changes; // for light 
+int frequency; // for light
 
 //static function prototypes, functions only called in this file
 
@@ -136,7 +138,7 @@ void move_motors(fc, rc) {
 int sensor_distance1()
 {
   int distance;
-  distance = adc_read(0); // add calibration
+  distance = 41000/(adc_read(1) + 45) - 30; // add calibration
 
   return distance;
 }
@@ -144,7 +146,7 @@ int sensor_distance1()
 int sensor_distance2()
 {
   int distance;
-  distance = adc_read(1); // add calibration
+  distance = 90000/(adc_read(2) + 50) - 70; // add calibration
 
   return distance;
 }
@@ -152,7 +154,7 @@ int sensor_distance2()
 int sensor_distance3()
 {
   int distance;
-  distance = adc_read(2); // add calibration
+  distance = 38000/(adc_read(3) + 40) - 30; // add calibration
 
   return distance;
 }
@@ -164,12 +166,12 @@ void run_motors_auto()
   int right_distance = sensor_distance3();
   int turn_direction = 0;
   
-  if (left_distance <= 10) // too close
+  if (left_distance <= 100) // too close
   {
     // save_left
     move_motors(103 + (MOVE_SPEED * 1 * 1), 103 + (TURN_SPEED * 1 * 0.4));
   }
-  else if (right_distance <= 10) // too close
+  else if (right_distance <= 100) // too close
   {
     // save_right
     move_motors(103 + (MOVE_SPEED * 1 * 1), 103 + (TURN_SPEED * -1 * 0.4));
@@ -179,12 +181,12 @@ void run_motors_auto()
     // turn left
     move_motors(103 + (MOVE_SPEED * 1 * 0), 103 + (TURN_SPEED * turn_direction * 0.6));
 
-    if (front_distance > 30) // far enough away from the wall meaning it has turned enough 
+    if (front_distance > 200) // far enough away from the wall meaning it has turned enough 
     {
       turn_direction = 0;
     }
   }
-  else if (front_distance <= 10) // too close
+  else if (front_distance <= 100) // too close
   {
     // determine turn
 
@@ -216,15 +218,15 @@ int read_battery()
 int read_frequency()
 {
   static int time_started = 0;
-  static int changes;
+  // changes in global variables 
   static bool previous_light;
   bool current_light;
 
   int light;
-  light = adc_read(3);
+  light = adc_read(4);
 
 
-  if (light > 500) // a high light value indicating that its on
+  if (light > 10000) // a high light value indicating that its on
   {
     current_light = 1;
   }
@@ -233,7 +235,7 @@ int read_frequency()
     current_light = 0;
   }
 
-  if (time_started == 0)
+  if (time_started == 0 || milliseconds_now() - time_started > 15000) //15 seconds gives time for it to get away from the light 
   {
     time_started = milliseconds_now();
     changes = 0;
@@ -241,15 +243,30 @@ int read_frequency()
     previous_light = 0;
   }
 
-  if (milliseconds_now() - time_started < 10000); // 10 seconds
-    
+  if (milliseconds_now() - time_started < 10000) // 10 seconds
+  {
     if (current_light != previous_light)
     {
       changes += 1;
     }
     
     previous_light = current_light;
+  }
+  else
+  {
+    frequency = changes / 10;
+  }
+  
 }
+
+
+
+
+
+
+
+
+
 
 int main(void)
 {
@@ -262,13 +279,15 @@ int main(void)
   
   uint8_t fc = 150;
   uint8_t rc = 150;
+  int light;
+  bool reading_light = false;
+  bool moving = true;
 
   while(1)
   {
-
     // --- servo calibration ---
 
-    sprintf(serialString, "%d %d %d", sensor_distance1(), sensor_distance2(), sensor_distance3());
+    sprintf(serialString, "%d %d %d\n", sensor_distance1(), sensor_distance2(), sensor_distance3());
     serial0_print_string(serialString);
 
     // --- end servo calibration ---
@@ -289,15 +308,30 @@ int main(void)
         OCR1A = (receivedData[2] - 2) * 5 + 1000;
       //}
     }
-    if (automatic_mode == true)
+
+    light = adc_read(4);
+    if (light > 500 && reading_light == false)
     {
-      run_motors_auto();
+      moving = false;
+      reading_light = true;
+    }
+
+    if (moving == true)
+    {
+
+      if (automatic_mode == true)
+      {
+        run_motors_auto();
+      }
+      else
+      {
+        move_motors(fc,rc);
+      }
     }
     else
     {
-      set_motors_manual(fc,rc);
+      read_frequency();
     }
-    //read_battery();
   }
 
 

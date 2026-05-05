@@ -55,18 +55,19 @@ int* calculate_data()
 {
   static int calculatedData[6];
 
-  adcHorizontal = adc_read(0)/5 + 2;
-  adcVertical = adc_read(1)/5 + 2;
+  adcHorizontal = adc_read(14)/5 + 2;
+  adcVertical = adc_read(15)/5 + 2;
 
-  adcHorizontal = adc_read(2)/5 + 2;
-  adcVertical = adc_read(3)/5 + 2;
+  adcHorizontal2 = adc_read(0)/5 + 2;
+  adcVertical2 = adc_read(1)/5 + 2;
 
   calculatedData[0] = adcHorizontal;
   calculatedData[1] = adcVertical;
   
-  calculatedData[2] = adcHorizontal;
-  calculatedData[3] = adcVertical;
+  calculatedData[2] = adcHorizontal2;
+  calculatedData[3] = adcVertical2;
 
+  calculatedData[4] = adc_read()
   return calculatedData;
 }
 
