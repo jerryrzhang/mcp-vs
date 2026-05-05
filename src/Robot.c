@@ -6,7 +6,7 @@
 #include "Robot.h"
 
 #define MOVE_SPEED 30
-#define TURN_SPEED 20
+#define TURN_SPEED 40
 
 uint32_t current_ms = 0;
 uint32_t last_send_ms = 0;
@@ -22,7 +22,8 @@ uint16_t compValue = 1500;
 uint8_t receivedData[6];
 int changes; // for light 
 int frequency; // for light
-
+int turn_direction = 0;
+bool reading_light = false;
 //static function prototypes, functions only called in this file
 
 void init_serial(void) {
@@ -70,7 +71,7 @@ int* calculate_data()
   int voltage;
   int light;
   calculatedData[0] = read_battery();
-
+  calculatedData[1] = turn_direction;
   return calculatedData;
 }
 
@@ -92,12 +93,12 @@ void receive_data()
   sprintf(serialString,"\nData 1: %3u, Data2: %3u", receivedData[0],receivedData[1]); 
   sprintf(serialString,"\nData 2: %3u, Data3: %3u", receivedData[2],receivedData[3]); 
 
-  automatic_mode = receivedData[5];
+  automatic_mode = receivedData[4];
   serial0_print_string(serialString); 
   
 }
 
-void move_motors(fc, rc) {
+void move_motors(int fc, int rc) {
 
     // lm goes from 0 - 104
     // lm goes from 0 - 206
@@ -164,29 +165,18 @@ void run_motors_auto()
   int left_distance = sensor_distance1();
   int front_distance = sensor_distance2();
   int right_distance = sensor_distance3();
-  int turn_direction = 0;
   
-  if (left_distance <= 100) // too close
-  {
-    // save_left
-    move_motors(103 + (MOVE_SPEED * 1 * 1), 103 + (TURN_SPEED * 1 * 0.4));
-  }
-  else if (right_distance <= 100) // too close
-  {
-    // save_right
-    move_motors(103 + (MOVE_SPEED * 1 * 1), 103 + (TURN_SPEED * -1 * 0.4));
-  }
-  else if (turn_direction)
+  if (turn_direction != 0)
   {
     // turn left
-    move_motors(103 + (MOVE_SPEED * 1 * 0), 103 + (TURN_SPEED * turn_direction * 0.6));
+    move_motors(103, 103 + (TURN_SPEED * turn_direction * 2));
 
-    if (front_distance > 200) // far enough away from the wall meaning it has turned enough 
+    if (front_distance > 100) // far enough away from the wall meaning it has turned enough 
     {
       turn_direction = 0;
     }
   }
-  else if (front_distance <= 100) // too close
+  else if (front_distance <= 70 && turn_direction == 0) // too close
   {
     // determine turn
 
@@ -198,6 +188,16 @@ void run_motors_auto()
     }
 
   }
+  else if (left_distance <= 80) // too close
+  {
+    // save_left
+    move_motors(103 + (MOVE_SPEED * 1 * 1), 103 + (TURN_SPEED * -1 * 0.5));
+  }
+  else if (right_distance <= 80) // too close
+  {
+    // save_right
+    move_motors(103 + (MOVE_SPEED * 1 * 1), 103 + (TURN_SPEED * 1 * 0.5));
+  }
   else
   {
     //move forward since everything is fine
@@ -208,7 +208,7 @@ void run_motors_auto()
 int read_battery()
 {
   char voltageString[50];
-  int voltage = adc_read(0)*5*1.68/1.024 - 200;
+  int voltage = (adc_read(0)*5*1.68/1.024 - 200)/40 + 2;
   sprintf(voltageString,"voltage: %d mV\n",voltage);
   serial0_print_string(voltageString);
 
@@ -255,6 +255,7 @@ int read_frequency()
   else
   {
     frequency = changes / 10;
+    reading_light = false;
   }
   
 }
@@ -277,8 +278,8 @@ int main(void)
   uint8_t databyte2 = 80;
 
   
-  uint8_t fc = 150;
-  uint8_t rc = 150;
+  uint8_t fc = 103;
+  uint8_t rc = 103;
   int light;
   bool reading_light = false;
   bool moving = true;
@@ -305,7 +306,11 @@ int main(void)
         fc = 210 - receivedData[0];
         rc = receivedData[1];
 
-        OCR1A = (receivedData[2] - 2) * 5 + 1000;
+        if (receivedData[2] < 600) {
+          receivedData[2] = 600;
+        }
+
+        OCR1A = (receivedData[2] - 2) * 5 + 500;
       //}
     }
 
