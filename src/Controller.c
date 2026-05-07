@@ -6,8 +6,8 @@
 #include "Controller.h"
 
 //PLEASE PLEASE PLEASE CHANGE THESE
-#define JOYSTICK2_X 0
-#define JOYSTICK2_Y 0
+#define JOYSTICK2_Y 14 
+#define JOYSTICK2_X 15
 
 
 //static function prototypes, functions only called in this file
@@ -25,8 +25,11 @@ uint8_t databyte2 = 200;
 uint16_t checksum = 0;
 uint16_t adcHorizontal = 0;
 uint16_t adcVertical = 0;
+uint16_t adcHorizontal2 = 0;
+uint16_t adcVertical2 = 0;
 
-bool automatic_mode = false;
+
+bool automatic_mode = true;
 
 uint16_t data = 0;
 
@@ -49,14 +52,19 @@ void initialise()
   init_timer();
   adc_init();
   lcd_init();
+
+  EICRA |= (1<<ISC11);
+  EICRA &= ~(1<<ISC10);
+  EIMSK |= (1<<INT1);
+
 }
 
 int* calculate_data()
 {
   static int calculatedData[6];
 
-  adcHorizontal = adc_read(14)/5 + 2;
-  adcVertical = adc_read(15)/5 + 2;
+  adcHorizontal = adc_read(JOYSTICK2_X)/5 + 2;
+  adcVertical = adc_read(JOYSTICK2_Y)/5 + 2;
 
   adcHorizontal2 = adc_read(0)/5 + 2;
   adcVertical2 = adc_read(1)/5 + 2;
@@ -67,7 +75,6 @@ int* calculate_data()
   calculatedData[2] = adcHorizontal2;
   calculatedData[3] = adcVertical2;
 
-  calculatedData[4] = adc_read()
   return calculatedData;
 }
 
@@ -79,16 +86,21 @@ void send_data()
   checksum = calculatedData[0] + calculatedData[1];
   serial2_write_bytes(5, calculatedData[0], calculatedData[1], calculatedData[2], calculatedData[3], automatic_mode);
   last_send_ms = current_ms;
+
+  sprintf(serialString1, "%d, %d\n", calculatedData[0], calculatedData[1]);
+  serial0_print_string(serialString1);
     
 }
 
-void lcd_display(int data)
+void lcd_display(uint16_t data[])
 {
   char lcd_string[33] = {0};//declare and initialise string for LCD
   lcd_clrscr();
   lcd_home();       // same as lcd_goto(0);
-  lcd_puts( "Distance" ); //Print string to LCD first line    
-  sprintf( lcd_string , "%dcm" , data);
+
+  sprintf( lcd_string , "%dmV %dmode" , data[0], data[1]);
+
+  lcd_puts( lcd_string ); //Print string to LCD second line, same as first line
   lcd_goto( 0x40 ); 
 
   if (automatic_mode) {
@@ -99,7 +111,6 @@ void lcd_display(int data)
 
 
   //print to string, %u special character to be replaced by variables in later arguments
-  lcd_puts( lcd_string ); //Print string to LCD second line, same as first line
   //%u for unsigned integers, %i,%d for signed integers
   //%lu for long unsigned ...
 
@@ -107,13 +118,16 @@ void lcd_display(int data)
 
 double* receive_data()
 {
-  static double data[2];
+  static uint16_t data[2];
   serial2_get_data(receivedData,2); 
   sprintf(serialString,"\nData 1: %3u, Data2: %3u", receivedData[0],receivedData[1]); 
   serial0_print_string(serialString); 
 
-  data[0] = 3000/( (receivedData[0]-2) * 3 + 20 ) - 1.5;
-  lcd_display(data[0]);
+  data[0] = (receivedData[0]-2) * 40;
+  data[1] = receivedData[1];
+  lcd_display(data);
+
+
 
   return data;
 }
@@ -148,3 +162,14 @@ int main(void)
   }
 }
 
+
+ISR(INT1_vect) {
+  //if ((milliseconds_now()-last_time_interrupt) > 20) {
+  //  last_time_interrupt = milliseconds_now();
+    if (automatic_mode == true) { 
+      automatic_mode = false;
+    } else { 
+      automatic_mode = true;
+     }
+  //}
+}
