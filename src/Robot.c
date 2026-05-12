@@ -242,8 +242,9 @@ void read_frequency()
     current_light = 0;
   }
 
-  if (time_started == 0 || milliseconds_now() - time_started > 15000) //15 seconds gives time for it to get away from the light 
+  if (time_started == 0 || milliseconds_now() - time_started > 15000) //15 seconds gives time for it to get away from the light
   {
+    serial0_print_string("\nfrequency window reset\n");
     time_started = milliseconds_now();
     changes = 0;
     current_light = 0;
@@ -255,13 +256,17 @@ void read_frequency()
     if (current_light != previous_light)
     {
       changes += 1;
+      sprintf(serialString, "\ntransition: changes=%d light=%d", changes, light);
+      serial0_print_string(serialString);
     }
-    
+
     previous_light = current_light;
   }
   else
   {
     frequency = changes / 20;
+    sprintf(serialString, "\nMEASUREMENT DONE: changes=%d freq=%dHz\n", changes, frequency);
+    serial0_print_string(serialString);
     moving = true;
   }
   
@@ -319,14 +324,14 @@ int main(void)
     }
 
     light = adc_read(4);
-    //sprintf(serialString, "\n%d light\n", light);
-    //serial0_print_string(serialString);
+    sprintf(serialString, "\nlight: %d", light);
+    serial0_print_string(serialString);
     if (light > 400 && reading_light == false)
     {
-    serial0_print_string("hi");
-    moving = false;
-    reading_light = true;
-    time_started = milliseconds_now();
+      serial0_print_string("\nBEACON DETECTED - stopping\n");
+      moving = false;
+      reading_light = true;
+      time_started = milliseconds_now();
     }
     
     if ((milliseconds_now() - time_started) > 15000)
