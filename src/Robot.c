@@ -250,7 +250,7 @@ int read_frequency()
     previous_light = 0;
   }
 
-  if (milliseconds_now() - time_started < 10000) // 10 seconds
+  if ((milliseconds_now() - time_started) < 10000) // 10 seconds
   {
     if (current_light != previous_light)
     {
@@ -262,8 +262,6 @@ int read_frequency()
   else
   {
     frequency = changes / 20;
-    reading_light = false;
-
     moving = true;
   }
   
@@ -290,7 +288,6 @@ int main(void)
   uint8_t fc = 103;
   uint8_t rc = 103;
   int light;
-  bool reading_light = false;
 
   while(1)
   {
@@ -330,6 +327,11 @@ int main(void)
     moving = false;
     reading_light = true;
     time_started = milliseconds_now();
+    }
+    
+    if ((milliseconds_now() - time_started) > 15000)
+    {
+      reading_light = false;
     }
 
     if (moving == true)
