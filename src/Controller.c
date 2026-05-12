@@ -25,8 +25,10 @@ uint8_t databyte2 = 200;
 uint16_t checksum = 0;
 uint16_t adcHorizontal = 0;
 uint16_t adcVertical = 0;
-uint16_t adcHorizontal2 = 0;
+int adcHorizontal2 = 0;
 uint16_t adcVertical2 = 0;
+
+int grabber = 0;
 
 
 bool automatic_mode = true;
@@ -69,12 +71,23 @@ int* calculate_data()
   adcHorizontal2 = adc_read(0)/5 + 2;
   adcVertical2 = adc_read(1)/5 + 2;
 
-  calculatedData[0] = adcHorizontal;
+  calculatedData[0] = adcHorizontal; // motor 
   calculatedData[1] = adcVertical;
+  // instead makes it such that it will open and close based on the joystick and will not automaticall return
   
-  calculatedData[2] = adcHorizontal2;
-  calculatedData[3] = adcVertical2;
+  grabber = grabber + ((adcHorizontal2 - 103) / 50);
+  if (grabber >= 206)
+  {
+    grabber = 204;
+  }
+  else if (grabber <= 4)
+  {
+    grabber = 5;
+  }
+  calculatedData[3] = 0;
 
+  calculatedData[2] = grabber;
+  
   return calculatedData;
 }
 
@@ -87,7 +100,7 @@ void send_data()
   serial2_write_bytes(5, calculatedData[0], calculatedData[1], calculatedData[2], calculatedData[3], automatic_mode);
   last_send_ms = current_ms;
 
-  sprintf(serialString1, "%d, %d\n", calculatedData[0], calculatedData[1]);
+  sprintf(serialString1, "%d, %d\n", adc_read(0)/5 + 2, calculatedData[2]);
   serial0_print_string(serialString1);
     
 }
@@ -98,7 +111,7 @@ void lcd_display(uint16_t data[])
   lcd_clrscr();
   lcd_home();       // same as lcd_goto(0);
 
-  sprintf( lcd_string , "%dmV %dmode" , data[0], data[1]);
+  sprintf( lcd_string , "%dmV %dmode %d frequency" , data[0], data[1],data[2]);
 
   lcd_puts( lcd_string ); //Print string to LCD second line, same as first line
   lcd_goto( 0x40 ); 
@@ -110,6 +123,7 @@ void lcd_display(uint16_t data[])
   }
 
 
+
   //print to string, %u special character to be replaced by variables in later arguments
   //%u for unsigned integers, %i,%d for signed integers
   //%lu for long unsigned ...
@@ -119,12 +133,13 @@ void lcd_display(uint16_t data[])
 double* receive_data()
 {
   static uint16_t data[2];
-  serial2_get_data(receivedData,2); 
+  serial2_get_data(receivedData,3); 
   sprintf(serialString,"\nData 1: %3u, Data2: %3u", receivedData[0],receivedData[1]); 
   serial0_print_string(serialString); 
 
-  data[0] = (receivedData[0]-2) * 40;
+  data[0] = (receivedData[0]-2) * 80;
   data[1] = receivedData[1];
+  data[2] = receivedData[2];
   lcd_display(data);
 
 

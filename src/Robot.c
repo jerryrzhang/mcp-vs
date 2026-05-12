@@ -5,11 +5,13 @@
 //include this .c file's header file
 #include "Robot.h"
 
-#define MOVE_SPEED 30
-#define TURN_SPEED 40
+#define MOVE_SPEED 40
+#define TURN_SPEED 50
 
 uint32_t current_ms = 0;
 uint32_t last_send_ms = 0;
+
+int time_started;
 
 static int16_t lm = 0;
 static int16_t rm = 0;
@@ -24,6 +26,7 @@ int changes; // for light
 int frequency; // for light
 int turn_direction = 0;
 bool reading_light = false;
+bool moving = true;
 //static function prototypes, functions only called in this file
 
 void init_serial(void) {
@@ -33,8 +36,8 @@ void init_serial(void) {
 
 void init_servo(void) {
   TCCR1A = (1<<COM1A1);
-  TCCR1B = (1<<WGM13) | (1<<CS11);
-  ICR1 = 20000;
+  TCCR1B = (1<<WGM13) | (1<<CS11);  // mode 8, prescaler 8
+  ICR1 = 20000; // servo range from 0 - 20000
   PORTB = 0xFF;
   DDRB |= (1<<PB5);
 }
@@ -70,8 +73,10 @@ int* calculate_data()
 
   int voltage;
   int light;
+  light = frequency;
   calculatedData[0] = read_battery();
   calculatedData[1] = turn_direction;
+  calculatedData[2] = light;
   return calculatedData;
 }
 
@@ -81,7 +86,7 @@ void send_data()
   calculatedData = calculate_data();
 
   // checksum = calculatedData[0] + calculatedData[1];
-  serial2_write_bytes(3, calculatedData[0], calculatedData[1]);
+  serial2_write_bytes(3, calculatedData[0], calculatedData[1],calculatedData[2]);
   last_send_ms = current_ms;
     
 }
@@ -90,8 +95,8 @@ void receive_data()
 {
   
   serial2_get_data(receivedData,5); 
-  sprintf(serialString,"\nData 1: %3u, Data2: %3u", receivedData[0],receivedData[1]); 
-  sprintf(serialString,"\nData 2: %3u, Data3: %3u", receivedData[2],receivedData[3]); 
+  //sprintf(serialString,"\nData 1: %3u, Data2: %3u", receivedData[0],receivedData[1]); 
+  //sprintf(serialString,"\nData 2: %3u, Data3: %3u", receivedData[2],receivedData[3]); 
 
   automatic_mode = receivedData[4];
   serial0_print_string(serialString); 
@@ -106,7 +111,7 @@ void move_motors(int fc, int rc) {
     rm = fc - rc;
 
     OCR3A = (int32_t)abs(lm)*8000/104; //lm speed from magnitude of lm
-    serial0_print_string(serialString);
+    //serial0_print_string(serialString);
     OCR3B = (int32_t)abs(rm)*8000/104; //lm speed from magnitude of rm
 
     if(lm>=0) //if lm is positive
@@ -176,7 +181,7 @@ void run_motors_auto()
       turn_direction = 0;
     }
   }
-  else if (front_distance <= 70 && turn_direction == 0) // too close
+  else if (front_distance <= 80 && turn_direction == 0) // too close
   {
     // determine turn
 
@@ -188,12 +193,12 @@ void run_motors_auto()
     }
 
   }
-  else if (left_distance <= 80) // too close
+  else if (left_distance <= 90) // too close
   {
     // save_left
     move_motors(103 + (MOVE_SPEED * 1 * 1), 103 + (TURN_SPEED * -1 * 0.5));
   }
-  else if (right_distance <= 80) // too close
+  else if (right_distance <= 90) // too close
   {
     // save_right
     move_motors(103 + (MOVE_SPEED * 1 * 1), 103 + (TURN_SPEED * 1 * 0.5));
@@ -208,16 +213,16 @@ void run_motors_auto()
 int read_battery()
 {
   char voltageString[50];
-  int voltage = (adc_read(0)*5*1.68/1.024 - 200)/40 + 2;
+  int voltage = (adc_read(0)*5*2.5/1.024)/80 + 2;
   sprintf(voltageString,"voltage: %d mV\n",voltage);
-  serial0_print_string(voltageString);
+  //serial0_print_string(voltageString);
 
   return voltage;
 }
 
 int read_frequency()
 {
-  static int time_started = 0;
+
   // changes in global variables 
   static bool previous_light;
   bool current_light;
@@ -226,7 +231,7 @@ int read_frequency()
   light = adc_read(4);
 
 
-  if (light > 10000) // a high light value indicating that its on
+  if (light > 400) // a high light value indicating that its on
   {
     current_light = 1;
   }
@@ -254,8 +259,10 @@ int read_frequency()
   }
   else
   {
-    frequency = changes / 10;
+    frequency = changes / 20;
     reading_light = false;
+
+    moving = true;
   }
   
 }
@@ -282,14 +289,13 @@ int main(void)
   uint8_t rc = 103;
   int light;
   bool reading_light = false;
-  bool moving = true;
 
   while(1)
   {
     // --- servo calibration ---
 
-    sprintf(serialString, "%d %d %d\n", sensor_distance1(), sensor_distance2(), sensor_distance3());
-    serial0_print_string(serialString);
+    //sprintf(serialString, "%d %d %d\n", sensor_distance1(), sensor_distance2(), sensor_distance3());
+    //serial0_print_string(serialString);
 
     // --- end servo calibration ---
 
@@ -306,19 +312,22 @@ int main(void)
         fc = 210 - receivedData[0];
         rc = receivedData[1];
 
-        if (receivedData[2] < 600) {
-          receivedData[2] = 600;
-        }
+        // recievdata[2] ranges from 2 - 206 
+        // so 620 - 206 * 5 + 620
+        // 620 -  of the 620 - 2420 us range for the sensor 
+        OCR1A = (receivedData[2] - 2) * 5 + 620; // moves the grabber 
 
-        OCR1A = (receivedData[2] - 2) * 5 + 500;
-      //}
     }
 
     light = adc_read(4);
-    if (light > 500 && reading_light == false)
+    //sprintf(serialString, "\n%d light\n", light);
+    //serial0_print_string(serialString);
+    if (light > 400 && reading_light == false)
     {
-      moving = false;
-      reading_light = true;
+    serial0_print_string("hi");
+    moving = false;
+    reading_light = true;
+    time_started = milliseconds_now();
     }
 
     if (moving == true)
