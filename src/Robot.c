@@ -11,7 +11,7 @@
 uint32_t current_ms = 0;
 uint32_t last_send_ms = 0;
 
-int time_started;
+uint32_t time_started;
 
 static int16_t lm = 0;
 static int16_t rm = 0;
@@ -222,7 +222,7 @@ int read_battery()
   return voltage;
 }
 
-int read_frequency()
+void read_frequency()
 {
 
   // changes in global variables 
@@ -344,7 +344,7 @@ int main(void)
       else
       {
         if (precision_mode == true) {
-          move_motors(fc/2,rc/2);
+          move_motors((fc - 103)/2 + 103, (rc - 103)/2 + 103);
         } else {
           move_motors(fc,rc);
         }

@@ -15,7 +15,7 @@
 char serialString[60];
 char serialString1[60];
 char lcd_string[60];
-uint8_t receivedData[2];
+uint8_t receivedData[3];
 
 uint32_t current_ms = 0;
 uint32_t last_send_ms = 0;
@@ -140,7 +140,7 @@ void lcd_display(uint16_t data[])
 
 double* receive_data()
 {
-  static uint16_t data[2];
+  static uint16_t data[3];
   serial2_get_data(receivedData,3); 
   sprintf(serialString,"\nData 1: %3u, Data2: %3u", receivedData[0],receivedData[1]); 
   serial0_print_string(serialString); 
