@@ -27,11 +27,13 @@ uint16_t adcHorizontal = 0;
 uint16_t adcVertical = 0;
 int adcHorizontal2 = 0;
 uint16_t adcVertical2 = 0;
+uint32_t last_time_interrupt;
 
 int grabber = 0;
 
 
 bool automatic_mode = true;
+bool precision_mode = false;
 
 uint16_t data = 0;
 
@@ -55,9 +57,15 @@ void initialise()
   adc_init();
   lcd_init();
 
+  //init int1
   EICRA |= (1<<ISC11);
   EICRA &= ~(1<<ISC10);
   EIMSK |= (1<<INT1);
+
+  //init int2
+  EICRA |= (1<<ISC21);
+  EICRA &= ~(1<<ISC20);
+  EIMSK |= (1<<INT2);
 
 }
 
@@ -97,7 +105,7 @@ void send_data()
   calculatedData = calculate_data();
 
   checksum = calculatedData[0] + calculatedData[1];
-  serial2_write_bytes(5, calculatedData[0], calculatedData[1], calculatedData[2], calculatedData[3], automatic_mode);
+  serial2_write_bytes(6, calculatedData[0], calculatedData[1], calculatedData[2], calculatedData[3], automatic_mode, precision_mode);
   last_send_ms = current_ms;
 
   sprintf(serialString1, "%d, %d\n", adc_read(0)/5 + 2, calculatedData[2]);
@@ -179,12 +187,23 @@ int main(void)
 
 
 ISR(INT1_vect) {
-  //if ((milliseconds_now()-last_time_interrupt) > 20) {
-  //  last_time_interrupt = milliseconds_now();
+  if ((milliseconds_now()-last_time_interrupt) > 20) {
+   last_time_interrupt = milliseconds_now();
     if (automatic_mode == true) { 
       automatic_mode = false;
     } else { 
       automatic_mode = true;
      }
-  //}
+  }
+}
+
+ISR(INT2_vect) {
+  if ((milliseconds_now()-last_time_interrupt) > 20) {
+   last_time_interrupt = milliseconds_now();
+    if (precision_mode == true) { 
+      precision_mode = false;
+    } else { 
+      precision_mode = true;
+     }
+  }
 }

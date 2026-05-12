@@ -16,6 +16,7 @@ int time_started;
 static int16_t lm = 0;
 static int16_t rm = 0;
 bool automatic_mode = true;
+bool precision_mode = false;
 char serialString[60];
 char serialString1[60];
 
@@ -94,11 +95,12 @@ void send_data()
 void receive_data()
 {
   
-  serial2_get_data(receivedData,5); 
+  serial2_get_data(receivedData,6); 
   //sprintf(serialString,"\nData 1: %3u, Data2: %3u", receivedData[0],receivedData[1]); 
   //sprintf(serialString,"\nData 2: %3u, Data3: %3u", receivedData[2],receivedData[3]); 
 
   automatic_mode = receivedData[4];
+  precision_mode = receivedData[5];
   serial0_print_string(serialString); 
   
 }
@@ -339,7 +341,11 @@ int main(void)
       }
       else
       {
-        move_motors(fc,rc);
+        if (precision_mode == true) {
+          move_motors(fc/2,rc/2);
+        } else {
+          move_motors(fc,rc);
+        }
       }
     }
     else
