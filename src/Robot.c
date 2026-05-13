@@ -7,6 +7,8 @@
 
 #define MOVE_SPEED 40
 #define TURN_SPEED 50
+#define LIGHT_THRESHOLD 550
+#define RECORDING_PERIOD 4
 
 uint32_t current_ms = 0;
 uint32_t last_send_ms = 0;
@@ -19,6 +21,7 @@ bool automatic_mode = true;
 bool precision_mode = false;
 char serialString[60];
 char serialString1[60];
+uint32_t lastread;
 
 uint16_t compValue = 1500;
 
@@ -233,7 +236,7 @@ void read_frequency()
   light = adc_read(4);
 
 
-  if (light > 400) // a high light value indicating that its on
+  if (light > LIGHT_THRESHOLD) // a high light value indicating that its on
   {
     current_light = 1;
   }
@@ -251,7 +254,7 @@ void read_frequency()
     previous_light = 0;
   }
 
-  if ((milliseconds_now() - time_started) < 10000) // 10 seconds
+  if ((milliseconds_now() - time_started) < RECORDING_PERIOD * 1000) // 10 seconds
   {
     if (current_light != previous_light)
     {
@@ -264,7 +267,7 @@ void read_frequency()
   }
   else
   {
-    frequency = changes / 20;
+    frequency = changes / (2*RECORDING_PERIOD);
     sprintf(serialString, "\nMEASUREMENT DONE: changes=%d freq=%dHz\n", changes, frequency);
     serial0_print_string(serialString);
     moving = true;
@@ -324,11 +327,15 @@ int main(void)
     }
 
     light = adc_read(4);
-    sprintf(serialString, "\nlight: %d", light);
-    serial0_print_string(serialString);
-    if (light > 400 && reading_light == false)
+    if (milliseconds_now() - lastread > 1000) {
+      lastread = milliseconds_now();
+      sprintf(serialString, "\nlight: %d", light);
+      serial0_print_string(serialString);
+    }
+    if (light > LIGHT_THRESHOLD && reading_light == false)
     {
       serial0_print_string("\nBEACON DETECTED - stopping\n");
+      changes = 0;
       moving = false;
       reading_light = true;
       time_started = milliseconds_now();
