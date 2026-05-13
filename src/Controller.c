@@ -119,15 +119,15 @@ void lcd_display(uint16_t data[])
   lcd_clrscr();
   lcd_home();       // same as lcd_goto(0);
 
-  sprintf( lcd_string , "%dmV %dmode %d frequency" , data[0], data[1],data[2]);
+  sprintf( lcd_string , "%04dmV %02dHz" , data[0], data[1],data[2]);
 
   lcd_puts( lcd_string ); //Print string to LCD second line, same as first line
   lcd_goto( 0x40 ); 
 
   if (automatic_mode) {
-    lcd_puts("Automatic");
+    lcd_puts("Automatic Mode");
   } else {
-    lcd_puts("Manual");
+    lcd_puts("Manual Mode");
   }
 
 
@@ -138,7 +138,7 @@ void lcd_display(uint16_t data[])
 
 }
 
-double* receive_data()
+void receive_data()
 {
   static uint16_t data[3];
   serial2_get_data(receivedData,3); 
@@ -149,17 +149,12 @@ double* receive_data()
   data[1] = receivedData[1];
   data[2] = receivedData[2];
   lcd_display(data);
-
-
-
-  return data;
 }
 
 int main(void)
 {
 
 
-  double* data;
 	//initialisation section, runs once
   initialise();
 
@@ -176,11 +171,7 @@ int main(void)
 
     if(serial2_available())
     {
-      data = receive_data();
-      if (data[0] == 0)
-      {
-        data[0] = 0;
-      }
+      receive_data();
     }
   }
 }

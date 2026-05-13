@@ -27,7 +27,7 @@ uint16_t compValue = 1500;
 
 uint8_t receivedData[6];
 int changes; // for light 
-int frequency; // for light
+int frequency = 0; // for light
 int turn_direction = 0;
 bool reading_light = false;
 bool moving = true;
