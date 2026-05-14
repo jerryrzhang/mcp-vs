@@ -232,11 +232,17 @@ void read_frequency()
   static bool previous_light;
   bool current_light;
 
-  int light;
-  light = adc_read(4);
+  int left_light;
+  int right_light;
+  right_light = adc_read(4);
+  left_light = adc_read(5);
+  if (right_light > left_light)
+  {
+    left_light = right_light;
+  }
 
 
-  if (light > LIGHT_THRESHOLD) // a high light value indicating that its on
+  if (left_light > LIGHT_THRESHOLD) // a high light value indicating that its on
   {
     current_light = 1;
   }
@@ -295,7 +301,8 @@ int main(void)
   
   uint8_t fc = 103;
   uint8_t rc = 103;
-  int light;
+  int right_light;
+  int left_light;
 
   while(1)
   {
@@ -326,13 +333,20 @@ int main(void)
 
     }
 
-    light = adc_read(4);
+    right_light = adc_read(4);
+    left_light = adc_read(5);
+    if (right_light > left_light)
+    {
+      left_light = right_light;
+    }
+
     if (milliseconds_now() - lastread > 1000) {
       lastread = milliseconds_now();
       sprintf(serialString, "\nlight: %d, moving: %d", light, moving);
       serial0_print_string(serialString);
     }
-    if (light > LIGHT_THRESHOLD && reading_light == false)
+
+    if (left_light > LIGHT_THRESHOLD && reading_light == false)
     {
       serial0_print_string("\nBEACON DETECTED - stopping\n");
       changes = 0;
