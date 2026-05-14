@@ -329,7 +329,7 @@ int main(void)
     light = adc_read(4);
     if (milliseconds_now() - lastread > 1000) {
       lastread = milliseconds_now();
-      sprintf(serialString, "\nlight: %d", light);
+      sprintf(serialString, "\nlight: %d, moving: %d", light, moving);
       serial0_print_string(serialString);
     }
     if (light > LIGHT_THRESHOLD && reading_light == false)
@@ -348,10 +348,10 @@ int main(void)
 
     if (moving == true)
     {
-
       if (automatic_mode == true)
       {
         run_motors_auto();
+        //serial0_print_string("\n MOVING")
       }
       else
       {
