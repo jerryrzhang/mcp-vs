@@ -130,7 +130,7 @@ void lcd_display(uint16_t data[])
     lcd_puts("Manual Mode");
   }
 
-  printf("light: %d left dist: %d front dist: %d right dist: %d",data[1],data[3],data[4],data[5]);
+  printf("light: %d left dist: %dmm front dist: %dmm right dist: %dmm",data[1],data[3],data[4],data[5]);
 
   //print to string, %u special character to be replaced by variables in later arguments
   //%u for unsigned integers, %i,%d for signed integers
