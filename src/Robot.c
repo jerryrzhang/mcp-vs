@@ -76,11 +76,47 @@ int* calculate_data()
   static int calculatedData[6];
 
   int voltage;
+
   int light;
-  light = frequency;
-  calculatedData[0] = read_battery();
-  calculatedData[1] = turn_direction;
-  calculatedData[2] = light;
+  int right_light;
+  right_light = adc_read(4);
+  light = adc_read(5);
+  if (right_light > light)
+  {
+    light = right_light;
+  }
+
+
+  calculatedData[0] = read_battery(); // voltage
+  calculatedData[1] = (light / 5) + 2; // highest light
+  calculatedData[2] = frequency; // frequency of light
+  if (sensor_distance1() > 1000)
+  {
+    calculatedData[3] = 250;
+  }
+  else
+  {
+    calculatedData[3] = sensor_distance1() / 4; // left distance
+  }
+  
+  if (sensor_distance2() > 1000)
+  {
+    calculatedData[4] = 250;
+  }
+  else
+  {
+    calculatedData[4] = sensor_distance2() / 4; // front distance
+  }
+
+  if (sensor_distance3() > 1000)
+  {
+    calculatedData[5] = 250;
+  }
+  else
+  {
+    calculatedData[5] = sensor_distance3() / 4; // right distance
+  }
+
   return calculatedData;
 }
 
@@ -90,7 +126,7 @@ void send_data()
   calculatedData = calculate_data();
 
   // checksum = calculatedData[0] + calculatedData[1];
-  serial2_write_bytes(3, calculatedData[0], calculatedData[1],calculatedData[2]);
+  serial2_write_bytes(6, calculatedData[0],calculatedData[1],calculatedData[2],calculatedData[3],calculatedData[4],calculatedData[5]);
   last_send_ms = current_ms;
     
 }

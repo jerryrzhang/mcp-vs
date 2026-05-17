@@ -15,7 +15,7 @@
 char serialString[60];
 char serialString1[60];
 char lcd_string[60];
-uint8_t receivedData[3];
+uint8_t receivedData[6];
 
 uint32_t current_ms = 0;
 uint32_t last_send_ms = 0;
@@ -130,7 +130,7 @@ void lcd_display(uint16_t data[])
     lcd_puts("Manual Mode");
   }
 
-
+  printf("light: %d left dist: %d front dist: %d right dist: %d",data[1],data[3],data[4],data[5]);
 
   //print to string, %u special character to be replaced by variables in later arguments
   //%u for unsigned integers, %i,%d for signed integers
@@ -140,14 +140,17 @@ void lcd_display(uint16_t data[])
 
 void receive_data()
 {
-  static uint16_t data[3];
-  serial2_get_data(receivedData,3); 
+  static uint16_t data[6];
+  serial2_get_data(receivedData,6); 
   sprintf(serialString,"\nData 1: %3u, Data2: %3u", receivedData[0],receivedData[1]); 
   serial0_print_string(serialString); 
 
-  data[0] = (receivedData[0]-2) * 80;
-  data[1] = receivedData[1];
-  data[2] = receivedData[2] * 2;
+  data[0] = (receivedData[0]-2) * 80; // voltage
+  data[1] = (receivedData[1] - 2) * 5; // light
+  data[2] = receivedData[2] * 2; // frequency
+  data[3] = receivedData[3] * 4; // left distance
+  data[4] = receivedData[4] * 4; // front distance
+  data[5] = receivedData[5] * 4; // right distance
   lcd_display(data);
 }
 
