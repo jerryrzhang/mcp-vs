@@ -7,7 +7,7 @@
 
 #define MOVE_SPEED 40
 #define TURN_SPEED 50
-#define LIGHT_THRESHOLD 550
+#define LIGHT_THRESHOLD 450
 #define RECORDING_PERIOD 4
 
 uint32_t current_ms = 0;
@@ -232,17 +232,17 @@ void read_frequency()
   static bool previous_light;
   bool current_light;
 
-  int left_light;
+  int light;
   int right_light;
   right_light = adc_read(4);
-  left_light = adc_read(5);
-  if (right_light > left_light)
+  light = adc_read(5);
+  if (right_light > light)
   {
-    left_light = right_light;
+    light = right_light;
   }
 
 
-  if (left_light > LIGHT_THRESHOLD) // a high light value indicating that its on
+  if (light > LIGHT_THRESHOLD) // a high light value indicating that its on
   {
     current_light = 1;
   }
@@ -273,8 +273,8 @@ void read_frequency()
   }
   else
   {
-    frequency = changes / (2*RECORDING_PERIOD);
-    sprintf(serialString, "\nMEASUREMENT DONE: changes=%d freq=%dHz\n", changes, frequency);
+    frequency = (changes * 5) / (2*RECORDING_PERIOD);
+    sprintf(serialString, "\nMEASUREMENT DONE: changes=%d freq=%ddHz\n", changes, frequency * 2);
     serial0_print_string(serialString);
     moving = true;
   }
@@ -302,7 +302,7 @@ int main(void)
   uint8_t fc = 103;
   uint8_t rc = 103;
   int right_light;
-  int left_light;
+  int light;
 
   while(1)
   {
@@ -334,10 +334,10 @@ int main(void)
     }
 
     right_light = adc_read(4);
-    left_light = adc_read(5);
-    if (right_light > left_light)
+    light = adc_read(5);
+    if (right_light > light)
     {
-      left_light = right_light;
+      light = right_light;
     }
 
     if (milliseconds_now() - lastread > 1000) {
@@ -346,7 +346,7 @@ int main(void)
       serial0_print_string(serialString);
     }
 
-    if (left_light > LIGHT_THRESHOLD && reading_light == false)
+    if (light > LIGHT_THRESHOLD + 67 && reading_light == false)
     {
       serial0_print_string("\nBEACON DETECTED - stopping\n");
       changes = 0;
@@ -379,6 +379,8 @@ int main(void)
     else
     {
       read_frequency();
+      OCR3A = 0;
+      OCR3B = 0;
     }
   }
 

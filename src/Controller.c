@@ -83,7 +83,7 @@ int* calculate_data()
   calculatedData[1] = adcVertical;
   // instead makes it such that it will open and close based on the joystick and will not automaticall return
   
-  grabber = grabber + ((adcHorizontal2 - 103) / 50);
+  grabber = grabber - ((adcHorizontal2 - 103) / 50);
   if (grabber >= 206)
   {
     grabber = 204;
@@ -119,7 +119,7 @@ void lcd_display(uint16_t data[])
   lcd_clrscr();
   lcd_home();       // same as lcd_goto(0);
 
-  sprintf( lcd_string , "%04dmV %02dHz" , data[0], data[1],data[2]);
+  sprintf( lcd_string , "%04dmV %03ddHz" , data[0], data[2]);
 
   lcd_puts( lcd_string ); //Print string to LCD second line, same as first line
   lcd_goto( 0x40 ); 
@@ -147,7 +147,7 @@ void receive_data()
 
   data[0] = (receivedData[0]-2) * 80;
   data[1] = receivedData[1];
-  data[2] = receivedData[2];
+  data[2] = receivedData[2] * 2;
   lcd_display(data);
 }
 
